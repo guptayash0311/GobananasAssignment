@@ -6,6 +6,7 @@ import NewsItem from './NewsItem';
 const SearchResults = ({ setProgress, apiKey, pageSize }) => {
     const [articles, setArticles] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const location = useLocation();
 
     useEffect(() => {
@@ -15,11 +16,27 @@ const SearchResults = ({ setProgress, apiKey, pageSize }) => {
             if (query) {
                 setProgress(30);
                 const url = `https://newsapi.org/v2/everything?q=${query}&apiKey=${apiKey}&pageSize=${pageSize}`;
-                const response = await fetch(url);
-                const data = await response.json();
-                setProgress(70);
-                setArticles(data.articles);
+                try {
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    setProgress(70);
+
+                    if (data.articles) {
+                        setArticles(data.articles);
+                    } else {
+                        setArticles([]);
+                        setError('No articles found for the search query.');
+                    }
+                } catch (err) {
+                    console.error('Error fetching search results:', err);
+                    setError('Error fetching search results');
+                } finally {
+                    setLoading(false);
+                    setProgress(100);
+                }
+            } else {
                 setLoading(false);
+                setError('No search query provided.');
                 setProgress(100);
             }
         };
@@ -32,6 +49,8 @@ const SearchResults = ({ setProgress, apiKey, pageSize }) => {
             <h2>Search Results</h2>
             {loading ? (
                 <p>Loading...</p>
+            ) : error ? (
+                <p>{error}</p>
             ) : (
                 <div>
                     <Grid container spacing={2}>
@@ -41,11 +60,11 @@ const SearchResults = ({ setProgress, apiKey, pageSize }) => {
                             articles.map((element) => (
                                 <Grid item xs={12} sm={6} md={3} key={element.url}>
                                     <NewsItem
-                                        title={element.title ? element.title : ""}
-                                        description={element.description ? element.description : ""}
-                                        imageUrl={element.urlToImage ? element.urlToImage : "newsaltimg.png"}
+                                        title={element.title || ""}
+                                        description={element.description || ""}
+                                        imageUrl={element.urlToImage || "newsaltimg.png"}
                                         newsUrl={element.url}
-                                        author={element.author ? element.author : "Anonymous Author"}
+                                        author={element.author || "Anonymous Author"}
                                         date={element.publishedAt}
                                     />
                                 </Grid>
